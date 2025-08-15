@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Digital Creative Wall - Vue Fes Style</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Klee One', cursive;
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .wall-container {
+            width: 100%;
+            max-width: 1600px;
+            height: 90vh;
+            position: relative;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+
+        .blackboard {
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.01), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.01), transparent 50%),
+                #2a2d3a;
+            background-size: 100% 100%;
+            border-radius: 10px;
+            position: relative;
+            overflow: auto;
+            border: 15px solid #8B4513;
+            box-shadow: 
+                inset 0 0 100px rgba(0,0,0,0.5),
+                inset 0 0 20px rgba(255,255,255,0.05);
+        }
+
+        .blackboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(255,255,255,0.01) 50px,
+                    rgba(255,255,255,0.01) 51px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(255,255,255,0.01) 50px,
+                    rgba(255,255,255,0.01) 51px
+                );
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .logo-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: rgba(255,255,255,0.05);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1;
+            letter-spacing: 3px;
+            text-align: center;
+        }
+
+        .sticker {
+            position: absolute;
+            cursor: move;
+            transition: transform 0.2s, filter 0.2s, z-index 0.2s;
+            z-index: 10;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+            touch-action: none; /* タッチ操作のデフォルト動作を無効化 */
+        }
+
+        .sticker:hover {
+            transform: scale(1.05) rotate(2deg);
+            filter: drop-shadow(0 10px 25px rgba(0,0,0,0.7));
+        }
+
+        .sticker.dragging {
+            opacity: 0.7;
+            transform: scale(1.1);
+            z-index: 1000;
+        }
+
+        .sticker.focused {
+            z-index: 500;
+            transform: scale(1.08);
+            filter: drop-shadow(0 15px 35px rgba(0,0,0,0.8));
+        }
+
+        .sticker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid rgba(255,255,255,0.1);
+            pointer-events: none; /* 画像自体はドラッグさせない */
+        }
+
+        .chalk-text {
+            position: absolute;
+            color: white;
+            font-family: 'Klee One', cursive;
+            font-weight: 600;
+            text-shadow: 
+                0 0 5px rgba(255,255,255,0.5),
+                0 0 10px rgba(255,255,255,0.3);
+            cursor: move;
+            z-index: 10;
+            opacity: 0.9;
+            transform: rotate(-2deg);
+            touch-action: none;
+        }
+
+        .chalk-text.color-yellow {
+            color: #FFEB3B;
+            text-shadow: 
+                0 0 5px rgba(255,235,59,0.5),
+                0 0 10px rgba(255,235,59,0.3);
+        }
+
+        .chalk-text.color-pink {
+            color: #FF4081;
+            text-shadow: 
+                0 0 5px rgba(255,64,129,0.5),
+                0 0 10px rgba(255,64,129,0.3);
+        }
+
+        .chalk-text.color-blue {
+            color: #40C4FF;
+            text-shadow: 
+                0 0 5px rgba(64,196,255,0.5),
+                0 0 10px rgba(64,196,255,0.3);
+        }
+
+        .chalk-text.color-green {
+            color: #69F0AE;
+            text-shadow: 
+                0 0 5px rgba(105,240,174,0.5),
+                0 0 10px rgba(105,240,174,0.3);
+        }
+
+        .sticker-size-1 { width: 120px; height: 120px; }
+        .sticker-size-2 { width: 150px; height: 150px; }
+        .sticker-size-3 { width: 180px; height: 180px; }
+        .sticker-size-4 { width: 100px; height: 100px; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .sticker-new {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        /* スマホ対応のメディアクエリ */
+        @media (max-width: 768px) {
+            body {
+                padding: 10px;
+            }
+
+            .wall-container {
+                height: 95vh;
+            }
+
+            .blackboard {
+                border-width: 8px;
+                overflow: auto; /* スクロール有効化 */
+                -webkit-overflow-scrolling: touch; /* スムーズスクロール */
+            }
+
+            .logo-watermark {
+                font-size: 1.8em;
+            }
+
+            /* スマホでは画像を適度なサイズに（重なり前提） */
+            .sticker-size-1 { width: 90px; height: 90px; }
+            .sticker-size-2 { width: 110px; height: 110px; }
+            .sticker-size-3 { width: 130px; height: 130px; }
+            .sticker-size-4 { width: 75px; height: 75px; }
+
+            .chalk-text {
+                font-size: 0.9em;
+            }
+
+            /* タップ操作時の視覚フィードバック */
+            .sticker:active {
+                z-index: 600 !important;
+                transform: scale(1.15);
+            }
+
+            /* 重なった画像の半透明化を軽減 */
+            .sticker {
+                opacity: 0.95;
+            }
+
+            .sticker.focused {
+                opacity: 1;
+                z-index: 500;
+            }
+
+            /* スマホでのスクロールエリア */
+            .scroll-area {
+                width: 130%; /* 横スクロール可能にする */
+                min-height: 100%;
+                position: relative;
+            }
+        }
+
+        /* タブレット対応 */
+        @media (min-width: 769px) and (max-width: 1024px) {
+            .sticker-size-1 { width: 100px; height: 100px; }
+            .sticker-size-2 { width: 130px; height: 130px; }
+            .sticker-size-3 { width: 150px; height: 150px; }
+            .sticker-size-4 { width: 90px; height: 90px; }
+        }
+
+        /* PC以外ではスクロールエリアは非表示 */
+        @media (min-width: 769px) {
+            .scroll-area {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="wall-container">
+        <div class="blackboard" id="blackboard">
+            <div class="logo-watermark">🎨 Creative Wall</div>
+            <div class="scroll-area" id="scrollArea"></div>
+        </div>
+    </div>
+
+    <script>
+        // 埋め込みデータ（CSVから変換）
+        // const embeddedData = [
+        //     { url: 'https://placehold.jp/ff6b6b/ffffff/300x200.png?text=サンプル01', title: '赤色のサンプル画像' },
+        //     { url: 'https://placehold.jp/4ecdc4/ffffff/300x200.png?text=サンプル02', title: '青緑色のサンプル画像' },
+        //     { url: 'https://placehold.jp/45b7d1/ffffff/300x200.png?text=サンプル03', title: '水色のサンプル画像' },
+        //     { url: 'https://placehold.jp/96ceb4/ffffff/300x200.png?text=サンプル04', title: '薄緑色のサンプル画像' },
+        //     { url: 'https://placehold.jp/ffeaa7/333333/300x200.png?text=サンプル05', title: '黄色のサンプル画像' },
+        //     { url: 'https://placehold.jp/fd79a8/ffffff/300x200.png?text=サンプル06', title: 'ピンク色のサンプル画像' },
+        //     { url: 'https://placehold.jp/a29bfe/ffffff/300x200.png?text=サンプル07', title: '紫色のサンプル画像' },
+        //     { url: 'https://placehold.jp/6c5ce7/ffffff/300x200.png?text=サンプル08', title: '濃紫色のサンプル画像' },
+        //     { url: 'https://placehold.jp/00b894/ffffff/300x200.png?text=サンプル09', title: '緑色のサンプル画像' },
+        //     { url: 'https://placehold.jp/00cec9/ffffff/300x200.png?text=サンプル10', title: 'シアン色のサンプル画像' },
+        //     { url: 'https://placehold.jp/e17055/ffffff/350x250.png?text=画像11', title: 'オレンジ系の画像' },
+        //     { url: 'https://placehold.jp/0984e3/ffffff/350x250.png?text=画像12', title: '青色の画像' },
+        //     { url: 'https://placehold.jp/fdcb6e/333333/350x250.png?text=画像13', title: '黄色系の画像' },
+        //     { url: 'https://placehold.jp/e84393/ffffff/350x250.png?text=画像14', title: 'ローズピンクの画像' },
+        //     { url: 'https://placehold.jp/55efc4/333333/350x250.png?text=画像15', title: 'ミント色の画像' },
+        //     { url: 'https://placehold.jp/74b9ff/ffffff/400x300.png?text=テスト16', title: 'スカイブルーの画像' },
+        //     { url: 'https://placehold.jp/a0e7e5/333333/400x300.png?text=テスト17', title: 'パステルシアンの画像' },
+        //     { url: 'https://placehold.jp/ffbe76/333333/400x300.png?text=テスト18', title: 'オレンジピールの画像' },
+        //     { url: 'https://placehold.jp/ff7979/ffffff/400x300.png?text=テスト19', title: 'コーラルレッドの画像' },
+        //     { url: 'https://placehold.jp/badc58/333333/400x300.png?text=テスト20', title: 'ライムグリーンの画像' }
+        // ];
+
+        const embeddedData = [
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '赤色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '青緑色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '水色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '薄緑色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '黄色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'ピンク色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '紫色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '濃紫色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '緑色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'シアン色のサンプル画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'オレンジ系の画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '青色の画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: '黄色系の画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'ローズピンクの画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'ミント色の画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'スカイブルーの画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'パステルシアンの画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'オレンジピールの画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'コーラルレッドの画像' },
+            { url: 'https://pbs.twimg.com/media/GKYgcx6a8AAjWDd.jpg', title: 'ライムグリーンの画像' }
+        ];
+
+        // テキストデータ（装飾用）
+        const textData = [
+            { text: 'Vue.js最高！', color: 'color-green' },
+            { text: 'Creative!', color: 'color-pink' },
+            { text: '楽しいイベント', color: 'color-yellow' },
+            { text: 'Thank you!', color: 'color-blue' },
+            { text: '素敵な作品', color: 'color-green' }
+        ];
+
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+        let currentTouch = null;
+        let maxZIndex = 100;
+
+        const blackboard = document.getElementById('blackboard');
+        const scrollArea = document.getElementById('scrollArea');
+
+        // 初期化処理
+        function init() {
+            displayItems();
+            setupEventListeners();
+        }
+
+        function setupEventListeners() {
+            // PC用のマウスイベント
+            blackboard.addEventListener('mousedown', startDrag);
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('mouseup', endDrag);
+
+            // スマホ・タブレット用のタッチイベント
+            blackboard.addEventListener('touchstart', startDrag, { passive: false });
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('touchend', endDrag);
+
+            // クリック/タップで最前面に移動
+            blackboard.addEventListener('click', bringToFront);
+            blackboard.addEventListener('touchend', bringToFront);
+        }
+
+        function bringToFront(e) {
+            const target = e.target.closest('.sticker') || e.target.closest('.chalk-text');
+            if (target && !draggedElement) {
+                // 全てのstickerからfocusedクラスを削除
+                document.querySelectorAll('.sticker.focused, .chalk-text.focused').forEach(el => {
+                    el.classList.remove('focused');
+                });
+                
+                // クリックした要素を最前面に
+                target.classList.add('focused');
+                target.style.zIndex = maxZIndex++;
+            }
+        }
+
+        function displayItems() {
+            const boardRect = blackboard.getBoundingClientRect();
+            const isMobile = window.innerWidth <= 768;
+            
+            // スマホの場合はスクロールエリアを使用
+            const container = isMobile ? scrollArea : blackboard;
+            const containerRect = container.getBoundingClientRect();
+            
+            // 重なりを前提とした配置パラメータ
+            const overlapFactor = isMobile ? 0.6 : 0.5; // スマホでは重なりを少し減らす
+            const gridCols = isMobile ? 4 : 5; // スマホでも横に4つ（横スクロールあり）
+            const gridRows = isMobile ? 4 : 3;
+            
+            // 画像を配置（グリッドベースだが重なりを持たせる）
+            embeddedData.forEach((item, index) => {
+                setTimeout(() => {
+                    createSticker(item.url, item.title, container, containerRect, index, gridCols, gridRows, overlapFactor);
+                }, index * 50);
+            });
+
+            // テキストを配置（30%の確率）
+            textData.forEach((item, index) => {
+                if (Math.random() > 0.5) {
+                    setTimeout(() => {
+                        createChalkText(item.text, item.color, container, containerRect);
+                    }, (index + embeddedData.length) * 50);
+                }
+            });
+        }
+
+        function createSticker(url, title, container, boardRect, index, gridCols, gridRows, overlapFactor) {
+            const sticker = document.createElement('div');
+            const sizeClass = `sticker-size-${Math.floor(Math.random() * 4) + 1}`;
+            sticker.className = `sticker sticker-new ${sizeClass}`;
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = title;
+            img.title = title;
+            
+            img.onerror = function() {
+                img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect width="150" height="150" fill="%23444" rx="10"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3EError%3C/text%3E%3C/svg%3E';
+            };
+            
+            // グリッドベースの配置に重なりとランダム性を追加
+            const col = index % gridCols;
+            const row = Math.floor(index / gridCols) % gridRows;
+            
+            const cellWidth = (boardRect.width - 100) / gridCols;
+            const cellHeight = (boardRect.height - 100) / gridRows;
+            
+            // 基本位置（グリッド）
+            const baseX = col * cellWidth + 50;
+            const baseY = row * cellHeight + 50;
+            
+            // ランダムなオフセット（重なりを作る）
+            const offsetX = (Math.random() - 0.5) * cellWidth * overlapFactor;
+            const offsetY = (Math.random() - 0.5) * cellHeight * overlapFactor;
+            
+            const x = Math.max(20, Math.min(baseX + offsetX, boardRect.width - 150));
+            const y = Math.max(20, Math.min(baseY + offsetY, boardRect.height - 150));
+            
+            sticker.style.left = x + 'px';
+            sticker.style.top = y + 'px';
+            
+            // ランダムな回転
+            const rotation = Math.random() * 40 - 20;
+            sticker.style.transform = `rotate(${rotation}deg)`;
+            
+            // Z-indexをランダムに設定（重なり順序を自然に）
+            sticker.style.zIndex = 10 + Math.floor(Math.random() * 30);
+            
+            sticker.appendChild(img);
+            container.appendChild(sticker);
+        }
+
+        function createChalkText(text, colorClass, container, boardRect) {
+            const chalkText = document.createElement('div');
+            chalkText.className = `chalk-text ${colorClass}`;
+            
+            // ランダムなフォントサイズ
+            const isMobile = window.innerWidth <= 768;
+            const fontSize = isMobile ? (0.9 + Math.random() * 0.5) : (1.2 + Math.random() * 0.8);
+            chalkText.style.fontSize = fontSize + 'em';
+            
+            chalkText.textContent = text;
+            
+            // ランダムな位置
+            const x = Math.random() * (boardRect.width - 200) + 50;
+            const y = Math.random() * (boardRect.height - 100) + 50;
+            chalkText.style.left = x + 'px';
+            chalkText.style.top = y + 'px';
+            
+            // ランダムな回転
+            const rotation = Math.random() * 20 - 10;
+            chalkText.style.transform = `rotate(${rotation}deg)`;
+            
+            container.appendChild(chalkText);
+        }
+
+        function startDrag(e) {
+            const target = e.target.closest('.sticker') || e.target.closest('.chalk-text');
+            
+            if (target) {
+                draggedElement = target;
+                draggedElement.classList.add('dragging');
+                
+                const rect = target.getBoundingClientRect();
+                const boardRect = blackboard.getBoundingClientRect();
+                
+                if (e.type === 'touchstart') {
+                    e.preventDefault(); // スクロールを防ぐ
+                    currentTouch = e.touches[0].identifier;
+                    offset.x = e.touches[0].clientX - rect.left;
+                    offset.y = e.touches[0].clientY - rect.top;
+                } else {
+                    offset.x = e.clientX - rect.left;
+                    offset.y = e.clientY - rect.top;
+                }
+            }
+        }
+
+        function drag(e) {
+            if (draggedElement) {
+                e.preventDefault();
+                
+                const boardRect = blackboard.getBoundingClientRect();
+                const isMobile = window.innerWidth <= 768;
+                const container = isMobile ? scrollArea : blackboard;
+                const containerRect = container.getBoundingClientRect();
+                
+                let x, y;
+                
+                if (e.type === 'touchmove') {
+                    // 正しいタッチを追跡
+                    const touch = Array.from(e.touches).find(t => t.identifier === currentTouch);
+                    if (!touch) return;
+                    
+                    if (isMobile) {
+                        x = touch.clientX - boardRect.left - offset.x + blackboard.scrollLeft;
+                        y = touch.clientY - boardRect.top - offset.y + blackboard.scrollTop;
+                    } else {
+                        x = touch.clientX - boardRect.left - offset.x;
+                        y = touch.clientY - boardRect.top - offset.y;
+                    }
+                } else {
+                    if (isMobile) {
+                        x = e.clientX - boardRect.left - offset.x + blackboard.scrollLeft;
+                        y = e.clientY - boardRect.top - offset.y + blackboard.scrollTop;
+                    } else {
+                        x = e.clientX - boardRect.left - offset.x;
+                        y = e.clientY - boardRect.top - offset.y;
+                    }
+                }
+                
+                // 境界チェック
+                const maxX = isMobile ? containerRect.width - draggedElement.offsetWidth : boardRect.width - draggedElement.offsetWidth;
+                const maxY = isMobile ? containerRect.height - draggedElement.offsetHeight : boardRect.height - draggedElement.offsetHeight;
+                
+                x = Math.max(0, Math.min(x, maxX));
+                y = Math.max(0, Math.min(y, maxY));
+                
+                draggedElement.style.left = x + 'px';
+                draggedElement.style.top = y + 'px';
+            }
+        }
+
+        function endDrag(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+                currentTouch = null;
+            }
+        }
+
+        // ページ読み込み時に初期化
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

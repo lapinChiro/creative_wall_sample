@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>フローティングカード クリエイティブボード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0f0f23;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(120, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255, 119, 198, 0.3), transparent 50%),
+                radial-gradient(circle at 40% 20%, rgba(119, 198, 255, 0.3), transparent 50%);
+            animation: gradientShift 20s ease-in-out infinite;
+        }
+
+        @keyframes gradientShift {
+            0%, 100% { transform: rotate(0deg) scale(1); }
+            50% { transform: rotate(180deg) scale(1.1); }
+        }
+
+        .title {
+            text-align: center;
+            padding: 30px;
+            color: white;
+            font-size: 3em;
+            font-weight: 100;
+            letter-spacing: 5px;
+            text-transform: uppercase;
+            position: relative;
+            z-index: 10;
+            text-shadow: 0 0 20px rgba(255,255,255,0.5);
+        }
+
+        .upload-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 15px 25px;
+            border-radius: 15px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            cursor: pointer;
+            transition: all 0.3s;
+            color: white;
+        }
+
+        .upload-area:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .board {
+            position: relative;
+            width: 100%;
+            height: calc(100vh - 120px);
+            perspective: 1000px;
+        }
+
+        .floating-card {
+            position: absolute;
+            width: 280px;
+            height: 350px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.5s ease;
+            animation: float 6s ease-in-out infinite;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.3),
+                inset 0 0 30px rgba(255, 255, 255, 0.1);
+        }
+
+        .floating-card img {
+            width: 100%;
+            height: 85%;
+            object-fit: cover;
+            border-radius: 15px;
+            opacity: 0.9;
+        }
+
+        .floating-card .caption {
+            color: white;
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        @keyframes float {
+            0%, 100% { 
+                transform: translateY(0px) rotateX(0deg) rotateY(0deg);
+            }
+            25% { 
+                transform: translateY(-20px) rotateX(5deg) rotateY(5deg);
+            }
+            50% { 
+                transform: translateY(0px) rotateX(-5deg) rotateY(-5deg);
+            }
+            75% { 
+                transform: translateY(-10px) rotateX(3deg) rotateY(-3deg);
+            }
+        }
+
+        .floating-card:nth-child(odd) {
+            animation-delay: -2s;
+            animation-duration: 7s;
+        }
+
+        .floating-card:nth-child(even) {
+            animation-delay: -4s;
+            animation-duration: 8s;
+        }
+
+        .floating-card:nth-child(3n) {
+            animation-delay: -1s;
+            animation-duration: 6.5s;
+        }
+
+        .floating-card:hover {
+            transform: scale(1.2) rotateY(10deg) !important;
+            z-index: 100;
+            box-shadow: 
+                0 20px 60px rgba(255, 255, 255, 0.3),
+                inset 0 0 50px rgba(255, 255, 255, 0.2);
+            animation-play-state: paused;
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            opacity: 0.5;
+            z-index: 1;
+        }
+
+        .particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 2px;
+            height: 2px;
+            background: white;
+            border-radius: 50%;
+            animation: particleFloat 10s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            from {
+                transform: translateY(100vh) translateX(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+            }
+            90% {
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-100vh) translateX(100px);
+                opacity: 0;
+            }
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            cursor: pointer;
+            backdrop-filter: blur(5px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <div class="particles" id="particles"></div>
+    
+    <h1 class="title">Floating Dreams</h1>
+    
+    <div class="upload-area">
+        <label for="csvFile">
+            ✨ Upload CSV
+        </label>
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+
+    <div class="board" id="board">
+        <div class="empty-state">
+            Upload your creative collection<br>
+            and watch it float
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        // パーティクル生成
+        const particlesContainer = document.getElementById('particles');
+        for (let i = 0; i < 50; i++) {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDelay = Math.random() * 10 + 's';
+            particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+            particlesContainer.appendChild(particle);
+        }
+
+        const fileInput = document.getElementById('csvFile');
+        const board = document.getElementById('board');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeBtn = document.querySelector('.close');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', closeModal);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('Please select a CSV file');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            board.innerHTML = '';
+            
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const urls = [];
+            const titles = [];
+
+            lines.forEach((line, index) => {
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach((col, colIndex) => {
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        const url = col.replace(/^["']|["']$/g, '');
+                        urls.push(url);
+                        titles.push(columns[colIndex + 1] || `Dream ${urls.length}`);
+                    }
+                });
+            });
+
+            if (urls.length === 0) {
+                board.innerHTML = '<div class="empty-state">No image URLs found</div>';
+                return;
+            }
+
+            displayFloatingCards(urls, titles);
+        }
+
+        function displayFloatingCards(urls, titles) {
+            const boardRect = board.getBoundingClientRect();
+            
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    const card = document.createElement('div');
+                    card.className = 'floating-card';
+                    
+                    // ランダムな位置に配置（重なりを許可）
+                    const x = Math.random() * (boardRect.width - 280);
+                    const y = Math.random() * (boardRect.height - 350);
+                    card.style.left = x + 'px';
+                    card.style.top = y + 'px';
+                    
+                    // Z軸の深さをランダムに
+                    card.style.zIndex = Math.floor(Math.random() * 50);
+                    
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = titles[index];
+                    
+                    const caption = document.createElement('div');
+                    caption.className = 'caption';
+                    caption.textContent = titles[index];
+
+                    img.onerror = function() {
+                        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="260" height="300"%3E%3Crect width="260" height="300" fill="%23222"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23666" text-anchor="middle" dy=".3em"%3ELoading Error%3C/text%3E%3C/svg%3E';
+                    };
+
+                    card.addEventListener('click', () => openModal(url));
+                    
+                    card.appendChild(img);
+                    card.appendChild(caption);
+                    board.appendChild(card);
+                }, index * 100);
+            });
+        }
+
+        function openModal(url) {
+            modal.style.display = 'block';
+            modalImg.src = url;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

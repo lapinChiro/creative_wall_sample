@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>コルクボード風クリエイティブボード</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Kiwi+Maru&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Kiwi Maru', serif;
+            background: #2c3e50;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .cork-frame {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: #8B4513;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 
+                inset 0 0 50px rgba(0,0,0,0.5),
+                0 10px 40px rgba(0,0,0,0.8);
+            position: relative;
+        }
+
+        .cork-board {
+            background: 
+                repeating-linear-gradient(
+                    45deg,
+                    #D2691E,
+                    #D2691E 10px,
+                    #CD853F 10px,
+                    #CD853F 20px
+                ),
+                repeating-linear-gradient(
+                    -45deg,
+                    #DEB887,
+                    #DEB887 10px,
+                    #D2691E 10px,
+                    #D2691E 20px
+                );
+            background-blend-mode: multiply;
+            background-size: 40px 40px;
+            min-height: 80vh;
+            border-radius: 5px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            padding: 40px;
+        }
+
+        .title {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #2c3e50;
+            font-size: 2.5em;
+            font-weight: bold;
+            background: #FFF8DC;
+            display: inline-block;
+            padding: 10px 30px;
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .upload-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: #FFE4B5;
+            padding: 15px 25px;
+            border-radius: 5px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            cursor: pointer;
+            transition: transform 0.3s;
+            transform: rotate(5deg);
+        }
+
+        .upload-area:hover {
+            transform: rotate(0deg) scale(1.05);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .items-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            justify-content: center;
+            padding-top: 50px;
+            min-height: 400px;
+        }
+
+        .pinned-item {
+            position: relative;
+            transition: transform 0.3s, z-index 0.3s;
+            cursor: pointer;
+        }
+
+        .pinned-item:hover {
+            transform: scale(1.05);
+            z-index: 100;
+        }
+
+        .photo {
+            background: white;
+            padding: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+
+        .photo img {
+            width: 200px;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .push-pin {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            top: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+        }
+
+        .push-pin::before {
+            content: '';
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background: radial-gradient(circle, #ff0000 30%, #cc0000 70%);
+            border-radius: 50% 50% 50% 0;
+            transform: rotate(-45deg);
+            top: 5px;
+            left: 5px;
+            box-shadow: 2px 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .push-pin::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #ffcccc;
+            border-radius: 50%;
+            top: 8px;
+            left: 8px;
+        }
+
+        .sticky-note {
+            background: linear-gradient(135deg, #FFEB3B 0%, #FFF59D 100%);
+            padding: 15px;
+            width: 200px;
+            height: 200px;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.2);
+            position: relative;
+            font-size: 1.1em;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .sticky-note::before {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            right: -10px;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, transparent 50%, #FFEB3B 50%);
+            transform: rotate(45deg);
+        }
+
+        .pinned-item:nth-child(odd) .photo {
+            transform: rotate(-3deg);
+        }
+
+        .pinned-item:nth-child(even) .photo {
+            transform: rotate(2deg);
+        }
+
+        .pinned-item:nth-child(3n) .sticky-note {
+            background: linear-gradient(135deg, #81C784 0%, #AED581 100%);
+            transform: rotate(-5deg);
+        }
+
+        .pinned-item:nth-child(4n) .sticky-note {
+            background: linear-gradient(135deg, #FFB74D 0%, #FFCC80 100%);
+            transform: rotate(4deg);
+        }
+
+        .pinned-item:nth-child(5n) .sticky-note {
+            background: linear-gradient(135deg, #9FA8DA 0%, #B39DDB 100%);
+            transform: rotate(-2deg);
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: #8B4513;
+            font-size: 1.5em;
+            opacity: 0.5;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            cursor: pointer;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+
+        @keyframes pinDrop {
+            0% {
+                transform: translateY(-100px) rotate(180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: translateY(10px) rotate(360deg);
+            }
+            100% {
+                transform: translateY(0) rotate(360deg);
+                opacity: 1;
+            }
+        }
+
+        .pinned-item {
+            animation: pinDrop 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="cork-frame">
+        <div class="cork-board">
+            <h1 class="title">📌 My Creative Board</h1>
+            
+            <div class="items-container" id="itemsContainer">
+                <div class="empty-state">
+                    CSVファイルをアップロードして<br>
+                    あなたのアイデアをピン留めしよう
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="upload-area">
+        <label for="csvFile">
+            📎 CSV アップロード
+        </label>
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFile');
+        const itemsContainer = document.getElementById('itemsContainer');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeBtn = document.querySelector('.close');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', closeModal);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            itemsContainer.innerHTML = '';
+            
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const urls = [];
+            const titles = [];
+
+            lines.forEach((line, index) => {
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach((col, colIndex) => {
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        const url = col.replace(/^["']|["']$/g, '');
+                        urls.push(url);
+                        titles.push(columns[colIndex + 1] || `Item ${urls.length}`);
+                    }
+                });
+            });
+
+            if (urls.length === 0) {
+                itemsContainer.innerHTML = '<div class="empty-state">画像URLが見つかりませんでした</div>';
+                return;
+            }
+
+            displayPinnedItems(urls, titles);
+        }
+
+        function displayPinnedItems(urls, titles) {
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    const pinnedItem = document.createElement('div');
+                    pinnedItem.className = 'pinned-item';
+                    pinnedItem.style.animationDelay = `${index * 0.1}s`;
+                    
+                    // 3枚に1枚は付箋にする
+                    if (index % 3 === 2) {
+                        const stickyNote = document.createElement('div');
+                        stickyNote.className = 'sticky-note';
+                        
+                        const text = document.createElement('div');
+                        text.textContent = titles[index];
+                        
+                        const pushPin = document.createElement('div');
+                        pushPin.className = 'push-pin';
+                        
+                        stickyNote.appendChild(text);
+                        pinnedItem.appendChild(pushPin);
+                        pinnedItem.appendChild(stickyNote);
+                        
+                        pinnedItem.addEventListener('click', () => openModal(url));
+                    } else {
+                        const photo = document.createElement('div');
+                        photo.className = 'photo';
+                        
+                        const img = document.createElement('img');
+                        img.src = url;
+                        img.alt = titles[index];
+                        
+                        const pushPin = document.createElement('div');
+                        pushPin.className = 'push-pin';
+                        
+                        img.onerror = function() {
+                            img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f5f5f5"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3E読み込みエラー%3C/text%3E%3C/svg%3E';
+                        };
+                        
+                        photo.appendChild(img);
+                        pinnedItem.appendChild(pushPin);
+                        pinnedItem.appendChild(photo);
+                        
+                        pinnedItem.addEventListener('click', () => openModal(url));
+                    }
+                    
+                    itemsContainer.appendChild(pinnedItem);
+                }, index * 50);
+            });
+        }
+
+        function openModal(url) {
+            modal.style.display = 'block';
+            modalImg.src = url;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

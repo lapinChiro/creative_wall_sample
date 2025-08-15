@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ポラロイド風クリエイティブボード</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Klee+One&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Klee One', cursive;
+            background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 50%, #ff7675 100%);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        .title {
+            text-align: center;
+            padding: 30px;
+            color: white;
+            font-size: 3em;
+            text-shadow: 3px 3px 6px rgba(0,0,0,0.3);
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
+
+        .upload-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            background: white;
+            padding: 15px 25px;
+            border-radius: 30px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .upload-area:hover {
+            transform: scale(1.05);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .board {
+            padding: 20px 50px 100px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 30px;
+            position: relative;
+            min-height: 600px;
+        }
+
+        .polaroid {
+            background: white;
+            padding: 10px 10px 60px 10px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            position: relative;
+            transition: transform 0.3s, z-index 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .polaroid:nth-child(odd) {
+            transform: rotate(-5deg);
+        }
+
+        .polaroid:nth-child(even) {
+            transform: rotate(3deg);
+        }
+
+        .polaroid:nth-child(3n) {
+            transform: rotate(-3deg);
+        }
+
+        .polaroid:nth-child(4n) {
+            transform: rotate(7deg);
+        }
+
+        .polaroid:nth-child(5n) {
+            transform: rotate(-8deg);
+        }
+
+        .polaroid:hover {
+            transform: rotate(0deg) scale(1.1);
+            z-index: 100;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.4);
+        }
+
+        .polaroid img {
+            width: 250px;
+            height: 250px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .polaroid .caption {
+            position: absolute;
+            bottom: 15px;
+            left: 10px;
+            right: 10px;
+            text-align: center;
+            font-size: 1.2em;
+            color: #333;
+            font-family: 'Klee One', cursive;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px) rotate(0deg);
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 1.5em;
+            opacity: 0.8;
+        }
+
+        .tape {
+            position: absolute;
+            width: 80px;
+            height: 30px;
+            background: rgba(255, 255, 255, 0.6);
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%) rotate(-2deg);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .tape::before {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                transparent,
+                transparent 5px,
+                rgba(0,0,0,0.05) 5px,
+                rgba(0,0,0,0.05) 10px
+            );
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            cursor: pointer;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <h1 class="title">🎨 Creative Board</h1>
+    
+    <div class="upload-area">
+        <label for="csvFile">
+            📁 CSVをアップロード
+        </label>
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+
+    <div class="board" id="board">
+        <div class="empty-state">
+            CSVファイルをアップロードして<br>
+            あなたのクリエイティブボードを作成しよう
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFile');
+        const board = document.getElementById('board');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeBtn = document.querySelector('.close');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', closeModal);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            board.innerHTML = '';
+            
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const urls = [];
+            const titles = [];
+
+            lines.forEach((line, index) => {
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach((col, colIndex) => {
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        const url = col.replace(/^["']|["']$/g, '');
+                        urls.push(url);
+                        // 次のカラムをタイトルとして使用
+                        titles.push(columns[colIndex + 1] || `Photo ${urls.length}`);
+                    }
+                });
+            });
+
+            if (urls.length === 0) {
+                board.innerHTML = '<div class="empty-state">画像URLが見つかりませんでした</div>';
+                return;
+            }
+
+            displayPolaroids(urls, titles);
+        }
+
+        function displayPolaroids(urls, titles) {
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    const polaroid = document.createElement('div');
+                    polaroid.className = 'polaroid';
+                    polaroid.style.animationDelay = `${index * 0.1}s`;
+                    
+                    const tape = document.createElement('div');
+                    tape.className = 'tape';
+                    
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = titles[index];
+                    
+                    const caption = document.createElement('div');
+                    caption.className = 'caption';
+                    caption.textContent = titles[index];
+
+                    img.onerror = function() {
+                        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="250" height="250"%3E%3Crect width="250" height="250" fill="%23f5f5f5"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3E読み込みエラー%3C/text%3E%3C/svg%3E';
+                    };
+
+                    polaroid.addEventListener('click', () => openModal(url));
+                    
+                    polaroid.appendChild(tape);
+                    polaroid.appendChild(img);
+                    polaroid.appendChild(caption);
+                    board.appendChild(polaroid);
+                }, index * 50);
+            });
+        }
+
+        function openModal(url) {
+            modal.style.display = 'block';
+            modalImg.src = url;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>

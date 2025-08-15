@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Creative Wall - Vue Fes Style</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Klee+One:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Klee One', cursive;
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow: hidden;
+        }
+
+        .wall-container {
+            width: 100%;
+            max-width: 1600px;
+            height: 90vh;
+            position: relative;
+            border-radius: 10px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+        }
+
+        .blackboard {
+            width: 100%;
+            height: 100%;
+            background: 
+                radial-gradient(circle at 20% 50%, rgba(255,255,255,0.01), transparent 50%),
+                radial-gradient(circle at 80% 80%, rgba(255,255,255,0.01), transparent 50%),
+                #2a2d3a;
+            background-size: 100% 100%;
+            border-radius: 10px;
+            position: relative;
+            overflow: auto;
+            border: 15px solid #8B4513;
+            box-shadow: 
+                inset 0 0 100px rgba(0,0,0,0.5),
+                inset 0 0 20px rgba(255,255,255,0.05);
+        }
+
+        .blackboard::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(255,255,255,0.01) 50px,
+                    rgba(255,255,255,0.01) 51px
+                ),
+                repeating-linear-gradient(
+                    90deg,
+                    transparent,
+                    transparent 50px,
+                    rgba(255,255,255,0.01) 50px,
+                    rgba(255,255,255,0.01) 51px
+                );
+            pointer-events: none;
+            opacity: 0.3;
+        }
+
+        .logo-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 3em;
+            color: rgba(255,255,255,0.05);
+            font-weight: bold;
+            pointer-events: none;
+            z-index: 1;
+            letter-spacing: 3px;
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+            border: 2px solid rgba(255,255,255,0.2);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Klee One', cursive;
+            font-weight: 600;
+            font-size: 1em;
+        }
+
+        .btn:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .sticker {
+            position: absolute;
+            cursor: move;
+            transition: transform 0.2s, filter 0.2s;
+            z-index: 10;
+            filter: drop-shadow(0 5px 15px rgba(0,0,0,0.5));
+        }
+
+        .sticker:hover {
+            transform: scale(1.05) rotate(2deg);
+            filter: drop-shadow(0 10px 25px rgba(0,0,0,0.7));
+            z-index: 100;
+        }
+
+        .sticker.dragging {
+            opacity: 0.7;
+            transform: scale(1.1);
+            z-index: 1000;
+        }
+
+        .sticker img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            border: 3px solid rgba(255,255,255,0.1);
+        }
+
+        .chalk-text {
+            position: absolute;
+            color: white;
+            font-family: 'Klee One', cursive;
+            font-weight: 600;
+            text-shadow: 
+                0 0 5px rgba(255,255,255,0.5),
+                0 0 10px rgba(255,255,255,0.3);
+            cursor: move;
+            z-index: 10;
+            opacity: 0.9;
+            transform: rotate(-2deg);
+        }
+
+        .chalk-text.color-yellow {
+            color: #FFEB3B;
+            text-shadow: 
+                0 0 5px rgba(255,235,59,0.5),
+                0 0 10px rgba(255,235,59,0.3);
+        }
+
+        .chalk-text.color-pink {
+            color: #FF4081;
+            text-shadow: 
+                0 0 5px rgba(255,64,129,0.5),
+                0 0 10px rgba(255,64,129,0.3);
+        }
+
+        .chalk-text.color-blue {
+            color: #40C4FF;
+            text-shadow: 
+                0 0 5px rgba(64,196,255,0.5),
+                0 0 10px rgba(64,196,255,0.3);
+        }
+
+        .chalk-text.color-green {
+            color: #69F0AE;
+            text-shadow: 
+                0 0 5px rgba(105,240,174,0.5),
+                0 0 10px rgba(105,240,174,0.3);
+        }
+
+        .sticker-size-1 { width: 120px; height: 120px; }
+        .sticker-size-2 { width: 150px; height: 150px; }
+        .sticker-size-3 { width: 180px; height: 180px; }
+        .sticker-size-4 { width: 100px; height: 100px; }
+
+        .rotate-1 { transform: rotate(-15deg); }
+        .rotate-2 { transform: rotate(10deg); }
+        .rotate-3 { transform: rotate(-5deg); }
+        .rotate-4 { transform: rotate(20deg); }
+        .rotate-5 { transform: rotate(-25deg); }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255,255,255,0.3);
+            font-size: 1.5em;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: scale(0.5);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        .sticker-new {
+            animation: fadeIn 0.5s ease-out;
+        }
+    </style>
+</head>
+<body>
+    <div class="wall-container">
+        <div class="blackboard" id="blackboard">
+            <div class="logo-watermark">🎨 Creative Wall</div>
+            <div class="empty-state" id="emptyState">
+                CSVファイルをアップロードして<br>
+                クリエイティブウォールを作ろう！
+            </div>
+        </div>
+    </div>
+
+    <div class="control-panel">
+        <label for="csvFile" class="btn">
+            📁 CSV アップロード
+        </label>
+        <input type="file" id="csvFile" accept=".csv">
+    </div>
+
+    <script>
+        let draggedElement = null;
+        let offset = { x: 0, y: 0 };
+        let stickerCount = 0;
+
+        const fileInput = document.getElementById('csvFile');
+        const blackboard = document.getElementById('blackboard');
+        const emptyState = document.getElementById('emptyState');
+
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // ドラッグ&ドロップのイベント設定
+        blackboard.addEventListener('mousedown', startDrag);
+        document.addEventListener('mousemove', drag);
+        document.addEventListener('mouseup', endDrag);
+
+        // タッチデバイス対応
+        blackboard.addEventListener('touchstart', startDrag);
+        document.addEventListener('touchmove', drag);
+        document.addEventListener('touchend', endDrag);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            emptyState.style.display = 'none';
+            
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const items = [];
+
+            lines.forEach((line, index) => {
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach((col, colIndex) => {
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        const url = col.replace(/^["']|["']$/g, '');
+                        const title = columns[colIndex + 1] || `Sticker ${items.length + 1}`;
+                        items.push({ url, title, type: 'image' });
+                    } else if (col && colIndex > 0 && !col.startsWith('http')) {
+                        // テキストとして扱う
+                        if (Math.random() > 0.7) { // 30%の確率でテキストも表示
+                            items.push({ text: col, type: 'text' });
+                        }
+                    }
+                });
+            });
+
+            if (items.length === 0) {
+                emptyState.innerHTML = '画像URLが見つかりませんでした';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            displayItems(items);
+        }
+
+        function displayItems(items) {
+            const boardRect = blackboard.getBoundingClientRect();
+            
+            items.forEach((item, index) => {
+                setTimeout(() => {
+                    if (item.type === 'image') {
+                        createSticker(item.url, item.title, boardRect);
+                    } else if (item.type === 'text') {
+                        createChalkText(item.text, boardRect);
+                    }
+                }, index * 100);
+            });
+        }
+
+        function createSticker(url, title, boardRect) {
+            const sticker = document.createElement('div');
+            sticker.className = `sticker sticker-new sticker-size-${Math.floor(Math.random() * 4) + 1}`;
+            
+            const img = document.createElement('img');
+            img.src = url;
+            img.alt = title;
+            img.title = title;
+            
+            img.onerror = function() {
+                img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="150" height="150"%3E%3Crect width="150" height="150" fill="%23444" rx="10"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3EError%3C/text%3E%3C/svg%3E';
+            };
+            
+            // ランダムな位置に配置
+            const x = Math.random() * (boardRect.width - 200) + 50;
+            const y = Math.random() * (boardRect.height - 200) + 50;
+            sticker.style.left = x + 'px';
+            sticker.style.top = y + 'px';
+            
+            // ランダムな回転
+            const rotation = Math.random() * 40 - 20;
+            sticker.style.transform = `rotate(${rotation}deg)`;
+            
+            sticker.appendChild(img);
+            blackboard.appendChild(sticker);
+            stickerCount++;
+        }
+
+        function createChalkText(text, boardRect) {
+            const chalkText = document.createElement('div');
+            chalkText.className = 'chalk-text';
+            
+            // ランダムな色
+            const colors = ['color-yellow', 'color-pink', 'color-blue', 'color-green', ''];
+            chalkText.classList.add(colors[Math.floor(Math.random() * colors.length)]);
+            
+            // ランダムなフォントサイズ
+            chalkText.style.fontSize = (1.2 + Math.random() * 0.8) + 'em';
+            
+            // テキスト設定
+            chalkText.textContent = text.substring(0, 30); // 最大30文字
+            
+            // ランダムな位置
+            const x = Math.random() * (boardRect.width - 200) + 50;
+            const y = Math.random() * (boardRect.height - 100) + 50;
+            chalkText.style.left = x + 'px';
+            chalkText.style.top = y + 'px';
+            
+            // ランダムな回転
+            const rotation = Math.random() * 20 - 10;
+            chalkText.style.transform = `rotate(${rotation}deg)`;
+            
+            blackboard.appendChild(chalkText);
+        }
+
+        function startDrag(e) {
+            if (e.target.closest('.sticker') || e.target.classList.contains('chalk-text')) {
+                draggedElement = e.target.closest('.sticker') || e.target;
+                draggedElement.classList.add('dragging');
+                
+                const rect = draggedElement.getBoundingClientRect();
+                const boardRect = blackboard.getBoundingClientRect();
+                
+                if (e.type === 'touchstart') {
+                    offset.x = e.touches[0].clientX - rect.left;
+                    offset.y = e.touches[0].clientY - rect.top;
+                } else {
+                    offset.x = e.clientX - rect.left;
+                    offset.y = e.clientY - rect.top;
+                }
+                
+                e.preventDefault();
+            }
+        }
+
+        function drag(e) {
+            if (draggedElement) {
+                const boardRect = blackboard.getBoundingClientRect();
+                let x, y;
+                
+                if (e.type === 'touchmove') {
+                    x = e.touches[0].clientX - boardRect.left - offset.x;
+                    y = e.touches[0].clientY - boardRect.top - offset.y;
+                } else {
+                    x = e.clientX - boardRect.left - offset.x;
+                    y = e.clientY - boardRect.top - offset.y;
+                }
+                
+                // 境界チェック
+                x = Math.max(0, Math.min(x, boardRect.width - draggedElement.offsetWidth));
+                y = Math.max(0, Math.min(y, boardRect.height - draggedElement.offsetHeight));
+                
+                draggedElement.style.left = x + 'px';
+                draggedElement.style.top = y + 'px';
+                
+                e.preventDefault();
+            }
+        }
+
+        function endDrag(e) {
+            if (draggedElement) {
+                draggedElement.classList.remove('dragging');
+                draggedElement = null;
+            }
+        }
+    </script>
+</body>
+</html>

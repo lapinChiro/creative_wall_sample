@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>画像ギャラリー</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+            font-weight: bold;
+        }
+
+        .file-input-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .file-name {
+            margin-left: 15px;
+            color: #666;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            min-height: 300px;
+        }
+
+        .gallery.empty {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 1.2em;
+        }
+
+        .image-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+            background: #f0f0f0;
+        }
+
+        .image-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+        }
+
+        .image-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            display: block;
+        }
+
+        .image-title {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);
+            color: white;
+            padding: 10px;
+            font-size: 0.9em;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .image-item:hover .image-title {
+            opacity: 1;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.9);
+            cursor: pointer;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+
+        .error-message {
+            color: #e74c3c;
+            margin-top: 10px;
+            display: none;
+        }
+
+        .loading {
+            display: none;
+            margin-top: 10px;
+            color: #3498db;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 画像ギャラリー</h1>
+        
+        <div class="upload-section">
+            <h2>CSVファイルをアップロード</h2>
+            <p style="margin-bottom: 20px; color: #666;">画像URLが含まれるCSVファイルを選択してください</p>
+            <div class="file-input-wrapper">
+                <label for="csvFile" class="file-input-label">
+                    ファイルを選択
+                </label>
+                <input type="file" id="csvFile" accept=".csv">
+                <span class="file-name" id="fileName">ファイルが選択されていません</span>
+            </div>
+            <div class="error-message" id="errorMessage"></div>
+            <div class="loading" id="loading">画像を読み込み中...</div>
+        </div>
+
+        <div class="gallery empty" id="gallery">
+            CSVファイルをアップロードすると画像が表示されます
+        </div>
+    </div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('csvFile');
+        const fileName = document.getElementById('fileName');
+        const gallery = document.getElementById('gallery');
+        const errorMessage = document.getElementById('errorMessage');
+        const loading = document.getElementById('loading');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeBtn = document.querySelector('.close');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', closeModal);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            fileName.textContent = file.name;
+            errorMessage.style.display = 'none';
+            
+            if (!file.name.endsWith('.csv')) {
+                showError('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    parseCSV(e.target.result);
+                } catch (err) {
+                    showError('CSVファイルの読み込みに失敗しました: ' + err.message);
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            loading.style.display = 'block';
+            gallery.innerHTML = '';
+            gallery.classList.remove('empty');
+
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const urls = [];
+
+            // CSVの各行を処理
+            lines.forEach((line, index) => {
+                // カンマで分割（シンプルなCSVパーサー）
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach(col => {
+                    // URLっぽい文字列を抽出（http/httpsで始まる、または画像拡張子を含む）
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        // クォートを除去
+                        const url = col.replace(/^["']|["']$/g, '');
+                        urls.push(url);
+                    }
+                });
+            });
+
+            if (urls.length === 0) {
+                showError('画像URLが見つかりませんでした');
+                loading.style.display = 'none';
+                gallery.classList.add('empty');
+                gallery.innerHTML = '画像URLが見つかりませんでした';
+                return;
+            }
+
+            displayImages(urls);
+        }
+
+        function displayImages(urls) {
+            let loadedCount = 0;
+            const totalCount = urls.length;
+
+            urls.forEach((url, index) => {
+                const imageItem = document.createElement('div');
+                imageItem.className = 'image-item';
+                
+                const img = document.createElement('img');
+                img.src = url;
+                img.alt = `画像 ${index + 1}`;
+                img.loading = 'lazy';
+                
+                const title = document.createElement('div');
+                title.className = 'image-title';
+                title.textContent = `画像 ${index + 1}`;
+
+                img.onload = function() {
+                    loadedCount++;
+                    if (loadedCount === totalCount) {
+                        loading.style.display = 'none';
+                    }
+                };
+
+                img.onerror = function() {
+                    loadedCount++;
+                    imageItem.style.background = '#ffebee';
+                    img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="200" height="200"%3E%3Crect width="200" height="200" fill="%23f5f5f5"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3E読み込みエラー%3C/text%3E%3C/svg%3E';
+                    if (loadedCount === totalCount) {
+                        loading.style.display = 'none';
+                    }
+                };
+
+                imageItem.addEventListener('click', () => openModal(url));
+                
+                imageItem.appendChild(img);
+                imageItem.appendChild(title);
+                gallery.appendChild(imageItem);
+            });
+        }
+
+        function openModal(url) {
+            modal.style.display = 'block';
+            modalImg.src = url;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.style.display = 'block';
+        }
+    </script>
+</body>
+</html>

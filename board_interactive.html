@@ -1,0 +1,613 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>インタラクティブ クリエイティブボード</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(270deg, #667eea, #764ba2, #f093fb, #f5576c);
+            background-size: 800% 800%;
+            animation: gradientWave 15s ease infinite;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        @keyframes gradientWave {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .control-panel {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            backdrop-filter: blur(10px);
+        }
+
+        .control-panel h3 {
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: bold;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .btn.active {
+            background: linear-gradient(45deg, #f093fb, #f5576c);
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: linear-gradient(45deg, #00d2ff, #3a47d5);
+        }
+
+        .board {
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            perspective: 1000px;
+        }
+
+        .image-card {
+            position: absolute;
+            width: 250px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.9);
+            border-radius: 15px;
+            padding: 10px;
+            cursor: pointer;
+            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            opacity: 0;
+            animation: fadeInScale 0.5s forwards;
+        }
+
+        @keyframes fadeInScale {
+            from {
+                opacity: 0;
+                transform: scale(0.8) rotateY(-90deg);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) rotateY(0deg);
+            }
+        }
+
+        .image-card img {
+            width: 100%;
+            height: 85%;
+            object-fit: cover;
+            border-radius: 10px;
+        }
+
+        .image-card .caption {
+            text-align: center;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #333;
+            font-weight: bold;
+        }
+
+        .image-card.highlight {
+            transform: scale(1.2) rotateY(360deg) !important;
+            z-index: 1000;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+        }
+
+        .mode-grid .image-card {
+            position: relative;
+            float: left;
+            margin: 20px;
+        }
+
+        .mode-spiral .image-card {
+            animation: spiralMove 20s linear infinite;
+        }
+
+        @keyframes spiralMove {
+            from {
+                transform: rotate(0deg) translateX(200px) rotate(0deg);
+            }
+            to {
+                transform: rotate(360deg) translateX(200px) rotate(-360deg);
+            }
+        }
+
+        .mode-wave .image-card {
+            animation: waveMove 4s ease-in-out infinite;
+        }
+
+        @keyframes waveMove {
+            0%, 100% {
+                transform: translateY(0) translateX(0);
+            }
+            25% {
+                transform: translateY(-30px) translateX(30px);
+            }
+            50% {
+                transform: translateY(0) translateX(60px);
+            }
+            75% {
+                transform: translateY(30px) translateX(30px);
+            }
+        }
+
+        .particles-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .particle {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: radial-gradient(circle, rgba(255,255,255,0.8), transparent);
+            border-radius: 50%;
+            animation: particleFloat 15s linear infinite;
+        }
+
+        @keyframes particleFloat {
+            from {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 1;
+                transform: translateY(90vh) scale(1);
+            }
+            90% {
+                opacity: 1;
+                transform: translateY(10vh) scale(1);
+            }
+            to {
+                transform: translateY(0) scale(0);
+                opacity: 0;
+            }
+        }
+
+        .empty-state {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: white;
+            font-size: 2em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .slideshow-indicator {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: none;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .slideshow-indicator.active {
+            display: flex;
+        }
+
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.5);
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+
+        .dot.active {
+            background: white;
+            transform: scale(1.3);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.95);
+            cursor: pointer;
+            backdrop-filter: blur(10px);
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            max-width: 90%;
+            max-height: 90%;
+        }
+
+        .modal-content img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 10px;
+        }
+
+        .close {
+            position: absolute;
+            top: 15px;
+            right: 35px;
+            color: #f1f1f1;
+            font-size: 40px;
+            font-weight: bold;
+            transition: 0.3s;
+            cursor: pointer;
+        }
+
+        .close:hover {
+            color: #bbb;
+        }
+
+        .firework {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            border-radius: 50%;
+            animation: fireworkBurst 1s ease-out forwards;
+        }
+
+        @keyframes fireworkBurst {
+            0% {
+                transform: translate(0, 0) scale(1);
+                opacity: 1;
+            }
+            100% {
+                opacity: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="particles-container" id="particles"></div>
+    
+    <div class="control-panel">
+        <h3>🎮 コントロール</h3>
+        <div class="controls">
+            <label for="csvFile" class="btn upload-btn">
+                📤 CSV アップロード
+            </label>
+            <input type="file" id="csvFile" accept=".csv">
+            
+            <button class="btn" id="slideshowBtn">▶️ スライドショー</button>
+            <button class="btn" id="shuffleBtn">🔀 シャッフル</button>
+            <button class="btn" id="gridBtn">⚏ グリッド表示</button>
+            <button class="btn" id="spiralBtn">🌀 スパイラル</button>
+            <button class="btn" id="waveBtn">〰️ ウェーブ</button>
+            <button class="btn" id="particlesBtn">✨ パーティクル</button>
+        </div>
+    </div>
+
+    <div class="board" id="board">
+        <div class="empty-state">
+            ✨ インタラクティブボード ✨<br>
+            CSVをアップロードして始めよう
+        </div>
+    </div>
+
+    <div class="slideshow-indicator" id="slideshowIndicator"></div>
+
+    <div id="modal" class="modal">
+        <span class="close">&times;</span>
+        <div class="modal-content">
+            <img id="modalImg" src="" alt="">
+        </div>
+    </div>
+
+    <script>
+        let images = [];
+        let slideshowInterval = null;
+        let currentSlideIndex = 0;
+        let particlesEnabled = false;
+        let particleInterval = null;
+
+        const fileInput = document.getElementById('csvFile');
+        const board = document.getElementById('board');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const closeBtn = document.querySelector('.close');
+        const slideshowBtn = document.getElementById('slideshowBtn');
+        const shuffleBtn = document.getElementById('shuffleBtn');
+        const gridBtn = document.getElementById('gridBtn');
+        const spiralBtn = document.getElementById('spiralBtn');
+        const waveBtn = document.getElementById('waveBtn');
+        const particlesBtn = document.getElementById('particlesBtn');
+        const slideshowIndicator = document.getElementById('slideshowIndicator');
+        const particlesContainer = document.getElementById('particles');
+
+        fileInput.addEventListener('change', handleFileSelect);
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', closeModal);
+        slideshowBtn.addEventListener('click', toggleSlideshow);
+        shuffleBtn.addEventListener('click', shuffleImages);
+        gridBtn.addEventListener('click', () => setLayout('grid'));
+        spiralBtn.addEventListener('click', () => setLayout('spiral'));
+        waveBtn.addEventListener('click', () => setLayout('wave'));
+        particlesBtn.addEventListener('click', toggleParticles);
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            if (!file.name.endsWith('.csv')) {
+                alert('CSVファイルを選択してください');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                parseCSV(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        function parseCSV(csvText) {
+            board.innerHTML = '';
+            images = [];
+            
+            const lines = csvText.split(/\r?\n/).filter(line => line.trim());
+            const urls = [];
+            const titles = [];
+
+            lines.forEach((line, index) => {
+                const columns = line.split(',').map(col => col.trim());
+                
+                columns.forEach((col, colIndex) => {
+                    if (col && (col.startsWith('http://') || col.startsWith('https://') || 
+                        /\.(jpg|jpeg|png|gif|webp|svg)$/i.test(col))) {
+                        const url = col.replace(/^["']|["']$/g, '');
+                        urls.push(url);
+                        titles.push(columns[colIndex + 1] || `Image ${urls.length}`);
+                    }
+                });
+            });
+
+            if (urls.length === 0) {
+                board.innerHTML = '<div class="empty-state">画像URLが見つかりませんでした</div>';
+                return;
+            }
+
+            displayImages(urls, titles);
+            setupSlideshowIndicator(urls.length);
+        }
+
+        function displayImages(urls, titles) {
+            const boardRect = board.getBoundingClientRect();
+            const centerX = boardRect.width / 2;
+            const centerY = boardRect.height / 2;
+            
+            urls.forEach((url, index) => {
+                setTimeout(() => {
+                    const card = document.createElement('div');
+                    card.className = 'image-card';
+                    card.style.animationDelay = `${index * 0.1}s`;
+                    
+                    // ランダムな初期位置
+                    const angle = (index / urls.length) * Math.PI * 2;
+                    const radius = 200 + Math.random() * 100;
+                    const x = centerX + Math.cos(angle) * radius - 125;
+                    const y = centerY + Math.sin(angle) * radius - 150;
+                    
+                    card.style.left = x + 'px';
+                    card.style.top = y + 'px';
+                    
+                    const img = document.createElement('img');
+                    img.src = url;
+                    img.alt = titles[index];
+                    
+                    const caption = document.createElement('div');
+                    caption.className = 'caption';
+                    caption.textContent = titles[index];
+
+                    img.onerror = function() {
+                        img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="230" height="255"%3E%3Crect width="230" height="255" fill="%23f0f0f0"/%3E%3Ctext x="50%25" y="50%25" font-family="Arial" font-size="14" fill="%23999" text-anchor="middle" dy=".3em"%3EError%3C/text%3E%3C/svg%3E';
+                    };
+
+                    card.addEventListener('click', () => {
+                        createFirework(event.pageX, event.pageY);
+                        openModal(url);
+                    });
+                    
+                    card.appendChild(img);
+                    card.appendChild(caption);
+                    board.appendChild(card);
+                    
+                    images.push({card, url, title: titles[index]});
+                }, index * 50);
+            });
+        }
+
+        function toggleSlideshow() {
+            if (slideshowInterval) {
+                clearInterval(slideshowInterval);
+                slideshowInterval = null;
+                slideshowBtn.classList.remove('active');
+                slideshowBtn.textContent = '▶️ スライドショー';
+                slideshowIndicator.classList.remove('active');
+                images.forEach(img => img.card.classList.remove('highlight'));
+            } else {
+                slideshowBtn.classList.add('active');
+                slideshowBtn.textContent = '⏸️ 停止';
+                slideshowIndicator.classList.add('active');
+                currentSlideIndex = 0;
+                showSlide(currentSlideIndex);
+                slideshowInterval = setInterval(() => {
+                    currentSlideIndex = (currentSlideIndex + 1) % images.length;
+                    showSlide(currentSlideIndex);
+                }, 3000);
+            }
+        }
+
+        function showSlide(index) {
+            images.forEach((img, i) => {
+                img.card.classList.toggle('highlight', i === index);
+            });
+            updateSlideshowIndicator(index);
+        }
+
+        function setupSlideshowIndicator(count) {
+            slideshowIndicator.innerHTML = '';
+            for (let i = 0; i < count; i++) {
+                const dot = document.createElement('div');
+                dot.className = 'dot';
+                dot.addEventListener('click', () => {
+                    currentSlideIndex = i;
+                    showSlide(i);
+                });
+                slideshowIndicator.appendChild(dot);
+            }
+        }
+
+        function updateSlideshowIndicator(index) {
+            const dots = slideshowIndicator.querySelectorAll('.dot');
+            dots.forEach((dot, i) => {
+                dot.classList.toggle('active', i === index);
+            });
+        }
+
+        function shuffleImages() {
+            const boardRect = board.getBoundingClientRect();
+            images.forEach(img => {
+                const x = Math.random() * (boardRect.width - 250);
+                const y = Math.random() * (boardRect.height - 300);
+                img.card.style.left = x + 'px';
+                img.card.style.top = y + 'px';
+                img.card.style.transform = `rotate(${Math.random() * 20 - 10}deg)`;
+            });
+        }
+
+        function setLayout(mode) {
+            board.className = 'board mode-' + mode;
+            
+            if (mode === 'grid') {
+                images.forEach((img, index) => {
+                    img.card.style.position = 'relative';
+                    img.card.style.left = 'auto';
+                    img.card.style.top = 'auto';
+                });
+            } else if (mode === 'spiral') {
+                const centerX = window.innerWidth / 2;
+                const centerY = window.innerHeight / 2;
+                images.forEach((img, index) => {
+                    img.card.style.position = 'absolute';
+                    img.card.style.left = (centerX - 125) + 'px';
+                    img.card.style.top = (centerY - 150) + 'px';
+                    img.card.style.animationDelay = `${index * 0.5}s`;
+                });
+            } else if (mode === 'wave') {
+                images.forEach((img, index) => {
+                    img.card.style.position = 'absolute';
+                    const x = (index * 100) % window.innerWidth;
+                    const y = Math.sin(index) * 100 + window.innerHeight / 2 - 150;
+                    img.card.style.left = x + 'px';
+                    img.card.style.top = y + 'px';
+                    img.card.style.animationDelay = `${index * 0.2}s`;
+                });
+            }
+        }
+
+        function toggleParticles() {
+            particlesEnabled = !particlesEnabled;
+            particlesBtn.classList.toggle('active', particlesEnabled);
+            
+            if (particlesEnabled) {
+                particleInterval = setInterval(createParticle, 100);
+            } else {
+                clearInterval(particleInterval);
+                particlesContainer.innerHTML = '';
+            }
+        }
+
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.className = 'particle';
+            particle.style.left = Math.random() * 100 + '%';
+            particle.style.animationDuration = (10 + Math.random() * 10) + 's';
+            particle.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 70%)`;
+            particlesContainer.appendChild(particle);
+            
+            setTimeout(() => particle.remove(), 20000);
+        }
+
+        function createFirework(x, y) {
+            for (let i = 0; i < 20; i++) {
+                const firework = document.createElement('div');
+                firework.className = 'firework';
+                firework.style.left = x + 'px';
+                firework.style.top = y + 'px';
+                firework.style.backgroundColor = `hsl(${Math.random() * 360}, 100%, 50%)`;
+                
+                const angle = (i / 20) * Math.PI * 2;
+                const velocity = 100 + Math.random() * 100;
+                const dx = Math.cos(angle) * velocity;
+                const dy = Math.sin(angle) * velocity;
+                
+                firework.style.transform = `translate(${dx}px, ${dy}px)`;
+                
+                document.body.appendChild(firework);
+                setTimeout(() => firework.remove(), 1000);
+            }
+        }
+
+        function openModal(url) {
+            modal.style.display = 'block';
+            modalImg.src = url;
+        }
+
+        function closeModal() {
+            modal.style.display = 'none';
+        }
+    </script>
+</body>
+</html>
