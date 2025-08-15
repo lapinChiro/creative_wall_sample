@@ -16,6 +16,7 @@
         />
         <ChalkText
           v-for="text in texts"
+          v-show="showTexts"
           :key="text.id"
           :text="text"
           @update-position="(pos) => $emit('update-text-position', text.id, pos)"
@@ -27,7 +28,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, withDefaults } from 'vue'
 import StickerItem from './StickerItem.vue'
 import ChalkText from './ChalkText.vue'
 import type { StickerItem as StickerType, ChalkTextItem, Position } from '@/types'
@@ -35,6 +36,7 @@ import type { StickerItem as StickerType, ChalkTextItem, Position } from '@/type
 interface Props {
   stickers: StickerType[]
   texts: ChalkTextItem[]
+  showTexts?: boolean
 }
 
 interface Emits {
@@ -43,7 +45,9 @@ interface Emits {
   (e: 'bring-to-front', type: 'sticker' | 'text', id: string): void
 }
 
-const props = defineProps<Props>()
+const props = withDefaults(defineProps<Props>(), {
+  showTexts: true
+})
 const emit = defineEmits<Emits>()
 
 const blackboardRef = ref<HTMLElement | null>(null)

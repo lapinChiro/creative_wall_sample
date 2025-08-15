@@ -93,5 +93,8 @@ export const sampleTexts: Omit<ChalkTextItem, 'id' | 'position' | 'fontSize' | '
   { text: 'Creative!', color: 'pink' },
   { text: '楽しいイベント', color: 'yellow' },
   { text: 'Thank you!', color: 'blue' },
-  { text: '素敵な作品', color: 'green' }
+  { text: '素敵な作品', color: 'green' },
+  { text: 'この文章は30文字を超えるとても長いテキストですが、自動的に切り詰められます', color: 'white' },
+  { text: 'Vue Fes Japanは日本最大級のVue.jsカンファレンスイベントです！', color: 'yellow' },
+  { text: 'コンポーネント指向のフロントエンドフレームワークで開発効率アップ', color: 'pink' }
 ];
